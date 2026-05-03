@@ -7,8 +7,8 @@ import seaborn as sns
 
 def load_data(path):
     df = pd.read_csv(path)
-    print(df.describe())
-    print(df.info())
+    # print(df.describe())
+    # print(df.info())
     return df
 
 def preprocess_data(df):
@@ -128,7 +128,119 @@ def plot_histogram_2(df):
     plt.grid(alpha=0.3)
 
 
+def plot_boxplots(df):
+    plt.figure(figsize=(11, 5))
 
+    # jection Fraction
+    plt.subplot(1, 2, 1)
+    sns.boxplot(
+        data=df,
+        x="DEATH_EVENT",
+        y="ejection_fraction",
+        hue="DEATH_EVENT",
+        palette=['green', 'red'],
+        legend=False
+    )
+    plt.title("Ejection Fraction by Outcome")
+    plt.xlabel("Outcome (0 = Survived, 1 = Died)")
+    plt.ylabel("Ejection Fraction (%)")
+
+    #  Serum Creatinine
+    plt.subplot(1, 2, 2)
+    sns.boxplot(
+        data=df,
+        x="DEATH_EVENT",
+        y="serum_creatinine",
+        hue="DEATH_EVENT",
+        palette=['green', 'red'],
+        legend=False
+    )
+    plt.title("Serum Creatinine by Outcome")
+    plt.xlabel("Outcome (0 = Survived, 1 = Died)")
+    plt.ylabel("Serum Creatinine (mg/dL)")
+
+    plt.suptitle("Boxplots Showing Distribution by Outcome", fontsize=14)
+    plt.tight_layout(rect=[0, 0, 1, 0.93])
+    plt.show()
+
+
+
+def plot_violinplots(df):
+    plt.figure(figsize=(11, 5))
+
+    plt.subplot(1, 2, 1)
+    sns.violinplot(
+        data=df,
+        x="DEATH_EVENT",
+        y="ejection_fraction",
+        hue="DEATH_EVENT",
+        palette=['green', 'red'],
+        legend=False,
+        inner="box"
+    )
+    plt.title("Ejection Fraction Distribution by Outcome")
+    plt.xlabel("Outcome (0 = Survived, 1 = Died)")
+    plt.ylabel("Ejection Fraction (%)")
+
+    plt.subplot(1, 2, 2)
+    sns.violinplot(
+        data=df,
+        x="DEATH_EVENT",
+        y="serum_creatinine",
+        hue="DEATH_EVENT",
+        palette=['green', 'red'],
+        legend=False,
+        inner="box"
+    )
+    plt.title("Serum Creatinine Distribution by Outcome")
+    plt.xlabel("Outcome (0 = Survived, 1 = Died)")
+    plt.ylabel("Serum Creatinine (mg/dL)")
+
+    plt.suptitle("Violin Plots Showing Distribution by Outcome", fontsize=14)
+    plt.tight_layout(rect=[0, 0, 1, 0.93])
+    plt.show()
+
+
+def calculate_statistics(df):
+
+    binary_cols = ['anaemia', 'diabetes', 'high_blood_pressure', 'sex', 'smoking', 'DEATH_EVENT']
+
+
+    numerical_cols = [col for col in df.columns if col not in binary_cols]
+
+    stats_list = []
+
+    for col in numerical_cols:
+        data = df[col].dropna()
+
+        stats = {
+            'Feature': col,
+            'Mean': data.mean(),
+            'Median': data.median(),
+            'Std Dev': data.std(),
+            'Min': data.min(),
+            'Max': data.max(),
+            'Range': data.max() - data.min(),
+            'Variance': data.var(),
+            'IQR': data.quantile(0.75) - data.quantile(0.25)
+        }
+
+        stats_list.append(stats)
+
+    stats_df = pd.DataFrame(stats_list)
+
+    stats_df = stats_df.sort_values(by="Std Dev", ascending=False)
+
+    print("\n=== Continuous Features Statistics (sorted by Std Dev) ===")
+    print(stats_df.round(2).to_string(index=False))
+
+    print("\n=== Categorical / Binary Features ===")
+    for col in binary_cols:
+        if col in df.columns:
+            print(f"\n{col}:")
+            print(df[col].value_counts().to_string())
+
+    return stats_df
 
 
 
@@ -140,5 +252,8 @@ if __name__ == '__main__':
     plot_scatter_3d(x_scaled_df)
     plot_histogram_1(df)
     plot_histogram_2(df)
+    plot_boxplots(df)
+    plot_violinplots(df)
+    calculate_statistics(df)
 
     plt.show()
