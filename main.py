@@ -7,8 +7,8 @@ import seaborn as sns
 
 def load_data(path):
     df = pd.read_csv(path)
-    # print(df.describe())
-    # print(df.info())
+    print(df.describe())
+    print(df.info())
     return df
 
 def preprocess_data(df):
@@ -22,6 +22,28 @@ def preprocess_data(df):
     x_scaled_df["DEATH_EVENT"] = y.values
 
     return df, x_scaled_df
+
+
+def show_feature_roles(df):
+    roles = []
+
+    for col in df.columns:
+        role = "Target" if col == "DEATH_EVENT" else "Input"
+
+        roles.append({
+            "Feature": col,
+            "Role": role,
+            "Data Type": str(df[col].dtype)
+        })
+
+    roles_df = pd.DataFrame(roles)
+
+    roles_df = roles_df.sort_values(by="Role")
+    roles_df.reset_index(drop=True, inplace=True)
+
+    return roles_df
+
+
 
 
 def plot_scatter_2d(df):
@@ -247,6 +269,9 @@ def calculate_statistics(df):
 if __name__ == '__main__':
     df = load_data("data/heart_failure_clinical_records.csv")
     df, x_scaled_df = preprocess_data(df)
+
+    roles_df = show_feature_roles(df)
+    print(roles_df.to_string(index=False))
 
     plot_scatter_2d(x_scaled_df)
     plot_scatter_3d(x_scaled_df)
