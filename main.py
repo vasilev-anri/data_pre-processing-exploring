@@ -7,8 +7,12 @@ import seaborn as sns
 
 def load_data(path):
     df = pd.read_csv(path)
-    print(df.describe())
-    print(df.info())
+    # print(df.describe())
+    # print(df.describe().T[['min', 'max', 'mean', 'std']])
+    # pd.set_option('display.max_columns', None)
+    # pd.set_option('display.width', None)
+    # print(df.describe().round(2))
+    # print(df.info())
     return df
 
 def preprocess_data(df):
@@ -22,6 +26,9 @@ def preprocess_data(df):
     x_scaled_df["DEATH_EVENT"] = y.values
 
     return df, x_scaled_df
+
+def remove_duplicates(df):
+    return df.drop_duplicates().reset_index(drop=True)
 
 
 def show_feature_roles(df):
@@ -223,6 +230,14 @@ def plot_violinplots(df):
     plt.show()
 
 
+def plot_corr_heat_map(df):
+    corr = df.corr()
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(corr, annot=True, cmap="coolwarm", fmt=".2f")
+    plt.title("Feature Correlation Heatmap")
+    plt.show()
+
+
 def calculate_statistics(df):
 
     binary_cols = ['anaemia', 'diabetes', 'high_blood_pressure', 'sex', 'smoking', 'DEATH_EVENT']
@@ -259,7 +274,8 @@ def calculate_statistics(df):
     print("\n=== Categorical / Binary Features ===")
     for col in binary_cols:
         if col in df.columns:
-            print(f"\n{col}:")
+            # print(f"\n{col}:")
+            print("\n")
             print(df[col].value_counts().to_string())
 
     return stats_df
@@ -270,15 +286,79 @@ if __name__ == '__main__':
     df = load_data("data/heart_failure_clinical_records.csv")
     df, x_scaled_df = preprocess_data(df)
 
-    roles_df = show_feature_roles(df)
-    print(roles_df.to_string(index=False))
+    # roles_df = show_feature_roles(df)
+    # print(roles_df.to_string(index=False))
 
-    plot_scatter_2d(x_scaled_df)
-    plot_scatter_3d(x_scaled_df)
-    plot_histogram_1(df)
-    plot_histogram_2(df)
-    plot_boxplots(df)
-    plot_violinplots(df)
-    calculate_statistics(df)
+    # plot_scatter_2d(x_scaled_df)
+    # plot_scatter_3d(x_scaled_df)
+    # plot_histogram_1(df)
+    # plot_histogram_2(df)
+    # plot_boxplots(df)
+    # plot_violinplots(df)
+    # calculate_statistics(df)
+
+    # print(df.head(10).to_string())      # show data file structure
+
+
+    #
+    # duplicated_rows = df[df.duplicated()]
+    # print(duplicated_rows)
+
+    # print(df[df.duplicated(keep=False)].shape)
+    # print(df.drop_duplicates().shape)
+
+    # duplicates = df[df.duplicated(keep=False)]
+    # print(duplicates.sample(10).to_string(index=False))
+    #
+    # dups = df[df.duplicated(keep=False)].sort_values(df.columns.tolist())
+    # print(dups.to_string(index=False))
+
+    # print("Total rows:", len(df))
+    # print("Duplicate rows:", df.duplicated().sum())
+
+    # duplicates = df[df.duplicated(keep=False)]
+    # print(duplicates.head(10))
+
+    # dups = df[df.duplicated(keep=False)].sort_values(df.columns.tolist())
+    # print(dups.to_string(index=False))
+
+    # print("Unique rows:", len(df.drop_duplicates()))
+    # print("Duplicated rows removed:", len(df) - len(df.drop_duplicates()))
+
+    # print("Unique rows:", len(df.drop_duplicates()))
+    # print("Dataset shape:", df.shape)
+
+    df_clean = remove_duplicates(df)
+
+
+    plot_corr_heat_map(df_clean)
+
+
+
+
+    # remove self-correlation
+    # corr_pairs = corr_pairs[corr_pairs < 1]
+    #
+    # print(corr_pairs.head(10))
+
+
+    # print("Original:", df.shape)
+    # print("Cleaned:", df_clean.shape)
+    #
+    # print("Duplicates in cleaned dataset:", df_clean.duplicated().sum())
+    #
+    # print(df_clean[df_clean.duplicated(keep=False)])
+    #
+    # assert df_clean.duplicated().sum() == 0
+
+    # df_clean = df.drop_duplicates().reset_index(drop=True)
+    #
+    # print("Original size:", df.shape)
+    # print("After deduplication:", df_clean.shape)
+    # print("Removed:", df.shape[0] - df_clean.shape[0])
+    #
+    # print(df.duplicated(keep=False).sum())
+    #
+    # print(df[df.duplicated(keep=False)].head(10))
 
     plt.show()
