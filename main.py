@@ -66,9 +66,9 @@ def plot_scatter_2d(df):
         edgecolor='black'
     )
 
-    plt.title('Plot 1: Age vs Ejection Fraction (Standardized)', fontsize=14)
-    plt.xlabel('Age (standardized)')
-    plt.ylabel('Ejection Fraction (standardized)')
+    plt.title('Plot 1: Age vs Ejection Fraction', fontsize=14)
+    plt.xlabel('Age')
+    plt.ylabel('Ejection Fraction')
     plt.grid(True, alpha=0.3)
 
     handles, labels = ax.get_legend_handles_labels()
@@ -83,7 +83,7 @@ def plot_scatter_3d(df):
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection='3d')
 
-    scatter = ax.scatter(
+    ax.scatter(
         df['age'],
         df['ejection_fraction'],
         df['serum_creatinine'],
@@ -95,9 +95,9 @@ def plot_scatter_3d(df):
         linewidth=0.5
     )
 
-    ax.set_xlabel('Age (standardized)', fontsize=11)
-    ax.set_ylabel('Ejection Fraction (standardized)', fontsize=11)
-    ax.set_zlabel('Serum Creatinine (standardized)', fontsize=11)
+    ax.set_xlabel('Age', fontsize=11)
+    ax.set_ylabel('Ejection Fraction', fontsize=11)
+    ax.set_zlabel('Serum Creatinine', fontsize=11)
 
     plt.title('3D Scatter Plot: Age vs Ejection Fraction vs Serum Creatinine', fontsize=13, pad=20)
 
@@ -286,6 +286,23 @@ if __name__ == '__main__':
     df = load_data("data/heart_failure_clinical_records.csv")
     df, x_scaled_df = preprocess_data(df)
 
+    # plot_scatter_2d(df)
+
+    clean_df = remove_duplicates(df)
+    # plot_scatter_2d(clean_df)
+    # plot_scatter_3d(clean_df)
+    # plot_histogram_1(clean_df)
+    # plot_histogram_2(clean_df)
+    # plot_boxplots(clean_df)
+    # plot_violinplots(clean_df)
+    calculate_statistics(clean_df)
+
+    # print("\nBEFORE NORMALIZATION")
+    # print(df.describe().round(3).to_string())
+    #
+    # print("\nAFTER NORMALIZATION")
+    # print(x_scaled_df.describe().round(3).to_string())
+
     # roles_df = show_feature_roles(df)
     # print(roles_df.to_string(index=False))
 
@@ -328,10 +345,10 @@ if __name__ == '__main__':
     # print("Unique rows:", len(df.drop_duplicates()))
     # print("Dataset shape:", df.shape)
 
-    df_clean = remove_duplicates(df)
-
-
-    plot_corr_heat_map(df_clean)
+    # df_clean = remove_duplicates(df)
+    #
+    #
+    # plot_corr_heat_map(df_clean)
 
 
 
