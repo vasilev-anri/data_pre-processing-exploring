@@ -1,8 +1,12 @@
 import pandas as pd
+from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
+from sklearn.cluster import AgglomerativeClustering, KMeans
+from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import seaborn as sns
+import numpy as np
 
 
 def load_data(path):
@@ -25,7 +29,7 @@ def preprocess_data(df):
     x_scaled_df = pd.DataFrame(x_scaled, columns=x.columns)
     x_scaled_df["DEATH_EVENT"] = y.values
 
-    return df, x_scaled_df
+    return x_scaled_df
 
 def remove_duplicates(df):
     return df.drop_duplicates().reset_index(drop=True)
@@ -281,21 +285,110 @@ def calculate_statistics(df):
     return stats_df
 
 
+# def hierarchical_clustering(df, n_clusters=3):
+#     X = df.drop("DEATH_EVENT", axis=1)
+#     model = AgglomerativeClustering(n_clusters=n_clusters)
+#     labels = model.fit_predict(X)
+#     linked = linkage(X, method="ward")
+#
+#     plt.figure(figsize=(12, 6))
+#
+#     plt.subplot(1, 2, 1)
+#     # plt.scatter(X.iloc[:, 0], X.iloc[:, 1], c=labels, s=50, cmap="coolwarm")
+#     plt.scatter(X['serum_creatinine'], X['ejection_fraction'], c=labels)
+#     plt.title(f"Agglomerative Clustering (k={n_clusters})")
+#     plt.xlabel(X.columns[7])
+#     plt.ylabel(X.columns[4])
+#
+#     plt.subplot(1, 2, 2)
+#     dendrogram(linked)
+#     plt.title("Hierarchical Clustering Dendrogram")
+#
+#     plt.tight_layout()
+#     plt.show()
+#
+#     return labels
+
+def hierarchical_clustering(df):
+    X = df.drop("DEATH_EVENT", axis=1)
+    Z = linkage(X, method='ward')
+
+    plt.figure(figsize=(12, 8))
+    dendrogram(Z, truncate_mode='lastp', p=30, leaf_rotation=90., leaf_font_size=10.)
+    plt.title('Dendrogram (Ward linkage)')
+    plt.xlabel('Data points')
+    plt.ylabel('Distance')
+    plt.axhline(y=70, color='r', linestyle='--', label='Cut at distance 70')
+    plt.axhline(y=37, color='g', linestyle='--', label='Cut at distance 37')
+    plt.axhline(y=20, color='b', linestyle='--', label='Cut at distance 20')
+    plt.legend()
+    plt.show()
+
+    cutoffs = [20, 37, 70]
+    for cutoff in cutoffs:
+        labels = fcluster(Z, cutoff, criterion='distance')
+        n_clusters = len(set(labels))
+        print(f"Cut-off distance = {cutoff} -> Number of clusters: {n_clusters}")
+        unique, counts = np.unique(labels, return_counts=True)
+        print(f"  Cluster sizes: {dict(zip(unique, counts))}")
+
+
+
+def k_means(df, k_range=range(2, 7)):
+    X = df.drop("DEATH_EVENT", axis=1)
+
+    scores = []
+
+    for k in k_range:
+        model = KMeans(n_clusters=k, random_state=42, n_init=10)
+        labels = model.fit_predict(X)
+        score = silhouette_score(X, labels, metric='euclidean')
+        scores.append(score)
+        print(f"k = {k} : silhouette score = {score:.4f}")
+
+    k_values = list(k_range)
+    best_k = k_values[np.argmax(scores)]
+    print(f"Best k = {best_k}")
+
+    plt.figure(figsize=(10, 8))
+    plt.plot(list(k_range), scores, marker='o', linestyle='-', markersize=5, label='silhouette')
+    plt.title("silhouette score vs number of clusters")
+    plt.xlabel("number of clusters (k)")
+    plt.ylabel("silhouette score")
+    plt.grid(True)
+
+    return scores, best_k
+
+
+
 
 if __name__ == '__main__':
     df = load_data("data/heart_failure_clinical_records.csv")
-    df, x_scaled_df = preprocess_data(df)
+
+
+    clean_df = remove_duplicates(df)
+
+    x_scaled_df = preprocess_data(df)
+
+
+
+    # hierarchical_clustering(x_scaled_df)
+
+    k_means(x_scaled_df)
+
+
+    # labels = hierarchical_clustering(x_scaled_df)
 
     # plot_scatter_2d(df)
 
-    clean_df = remove_duplicates(df)
+    # clean_df = remove_duplicates(df)
     # plot_scatter_2d(clean_df)
     # plot_scatter_3d(clean_df)
     # plot_histogram_1(clean_df)
     # plot_histogram_2(clean_df)
     # plot_boxplots(clean_df)
     # plot_violinplots(clean_df)
-    calculate_statistics(clean_df)
+    # calculate_statistics(clean_df)
 
     # print("\nBEFORE NORMALIZATION")
     # print(df.describe().round(3).to_string())
