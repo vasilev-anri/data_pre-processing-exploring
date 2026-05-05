@@ -3,6 +3,11 @@ from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
 from sklearn.cluster import AgglomerativeClustering, KMeans
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
+from sklearn.neural_network import MLPClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, f1_score, classification_report
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neighbors import KNeighborsClassifier
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import seaborn as sns
@@ -20,16 +25,16 @@ def load_data(path):
     return df
 
 def preprocess_data(df):
-    x = df.drop("DEATH_EVENT", axis=1)
+    X = df.drop("DEATH_EVENT", axis=1)
     y = df["DEATH_EVENT"]
 
     scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
 
-    x_scaled = scaler.fit_transform(x)
-    x_scaled_df = pd.DataFrame(x_scaled, columns=x.columns)
-    x_scaled_df["DEATH_EVENT"] = y.values
+    X_scaled_df = pd.DataFrame(X_scaled, columns=X.columns)
+    X_scaled_df["DEATH_EVENT"] = y.values
 
-    return x_scaled_df
+    return X_scaled_df
 
 def remove_duplicates(df):
     return df.drop_duplicates().reset_index(drop=True)
@@ -285,30 +290,6 @@ def calculate_statistics(df):
     return stats_df
 
 
-# def hierarchical_clustering(df, n_clusters=3):
-#     X = df.drop("DEATH_EVENT", axis=1)
-#     model = AgglomerativeClustering(n_clusters=n_clusters)
-#     labels = model.fit_predict(X)
-#     linked = linkage(X, method="ward")
-#
-#     plt.figure(figsize=(12, 6))
-#
-#     plt.subplot(1, 2, 1)
-#     # plt.scatter(X.iloc[:, 0], X.iloc[:, 1], c=labels, s=50, cmap="coolwarm")
-#     plt.scatter(X['serum_creatinine'], X['ejection_fraction'], c=labels)
-#     plt.title(f"Agglomerative Clustering (k={n_clusters})")
-#     plt.xlabel(X.columns[7])
-#     plt.ylabel(X.columns[4])
-#
-#     plt.subplot(1, 2, 2)
-#     dendrogram(linked)
-#     plt.title("Hierarchical Clustering Dendrogram")
-#
-#     plt.tight_layout()
-#     plt.show()
-#
-#     return labels
-
 def hierarchical_clustering(df):
     X = df.drop("DEATH_EVENT", axis=1)
     Z = linkage(X, method='ward')
@@ -360,21 +341,166 @@ def k_means(df, k_range=range(2, 7)):
     return scores, best_k
 
 
+def split_data(df):
+    X = df.drop("DEATH_EVENT", axis=1)
+    y = df["DEATH_EVENT"]
+
+    return train_test_split(
+        X, y,
+        test_size=0.2,
+        random_state=42,
+        stratify=y
+    )
+
+def evaluate_model(model, X_train, X_test, y_train, y_test):
+    model.fit(X_train, y_train)
+    pred = model.predict(X_test)
+
+    return {
+        "accuracy": accuracy_score(y_test, pred),
+        "f1": f1_score(y_test, pred),
+        "model": model
+    }
+
+def print_split_details(X_train, X_test, y_train, y_test):
+    total = len(X_train) + len(X_test)
+    print(f"Total data objects: {total}")
+    print(f"Training set: {len(X_train)} ({len(X_train)/total*100:.1f}%)")
+    print(f"Test set:     {len(X_test)} ({len(X_test)/total*100:.1f}%)")
+    print("\nClass distribution (0 = survived, 1 = died):")
+    print(f"  Train - 0: {(y_train == 0).sum()} ({(y_train == 0).mean()*100:.1f}%)")
+    print(f"         1: {(y_train == 1).sum()} ({(y_train == 1).mean()*100:.1f}%)")
+    print(f"  Test  - 0: {(y_test == 0).sum()} ({(y_test == 0).mean()*100:.1f}%)")
+    print(f"         1: {(y_test == 1).sum()} ({(y_test == 1).mean()*100:.1f}%)")
+
+
+
+def mlp_experiments(X_train, X_test, y_train, y_test):
+
+    configs = [
+        MLPClassifier(hidden_layer_sizes=(50,), max_iter=300, random_state=42),
+        MLPClassifier(hidden_layer_sizes=(100, 50), max_iter=400, random_state=42),
+        MLPClassifier(hidden_layer_sizes=(100, 100), activation="tanh", max_iter=500, random_state=42),
+    ]
+
+    results = []
+
+    for i, model in enumerate(configs, 1):
+        res = evaluate_model(model, X_train, X_test, y_train, y_test)
+        print(f"\nMLP Experiment {i}: F1={res['f1']:.4f}, Acc={res['accuracy']:.4f}")
+        results.append((f"MLP_{i}", res["accuracy"], res["f1"], model))
+
+    return results
+
+
+
+
+
+
+
+def rf_experiments(X_train, X_test, y_train, y_test):
+
+    configs = [
+        RandomForestClassifier(n_estimators=50, max_depth=5, random_state=42),
+        RandomForestClassifier(n_estimators=150, max_depth=10, random_state=42),
+        RandomForestClassifier(n_estimators=200, max_depth=None, random_state=42),
+    ]
+
+    results = []
+
+    for i, model in enumerate(configs, 1):
+        res = evaluate_model(model, X_train, X_test, y_train, y_test)
+        print(f"\nRF Experiment {i}: F1={res['f1']:.4f}, Acc={res['accuracy']:.4f}")
+        results.append((f"RF_{i}", res["accuracy"], res["f1"], model))
+
+    return results
+
+
+
+
+
+def knn_experiments(X_train, X_test, y_train, y_test):
+
+    configs = [
+        KNeighborsClassifier(n_neighbors=3),
+        KNeighborsClassifier(n_neighbors=5, weights="distance"),
+        KNeighborsClassifier(n_neighbors=11, metric="manhattan"),
+    ]
+
+    results = []
+
+    for i, model in enumerate(configs, 1):
+        res = evaluate_model(model, X_train, X_test, y_train, y_test)
+        print(f"\nKNN Experiment {i}: F1={res['f1']:.4f}, Acc={res['accuracy']:.4f}")
+        results.append((f"KNN_{i}", res["accuracy"], res["f1"], model))
+
+    return results
+
+
+def build_results_table(mlp_res, rf_res, knn_res):
+    all_results = mlp_res + rf_res + knn_res
+
+    df = pd.DataFrame(all_results, columns=[
+        "Model",
+        "Accuracy",
+        "F1-score",
+        "Estimator"
+    ])
+
+    df = df.sort_values(by="F1-score", ascending=False)
+
+    print("\n===== FINAL MODEL COMPARISON =====")
+    print(df[["Model", "Accuracy", "F1-score"]])
+
+    return df
+
+
+
+
 
 
 if __name__ == '__main__':
     df = load_data("data/heart_failure_clinical_records.csv")
 
-
     clean_df = remove_duplicates(df)
 
-    x_scaled_df = preprocess_data(df)
+    # split first
+    X_train, X_test, y_train, y_test = split_data(clean_df)
 
+    # scaling (NO leakage)
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
+
+    print_split_details(X_train, X_test, y_train, y_test)
+
+    # models
+    mlp_res = mlp_experiments(X_train, X_test, y_train, y_test)
+    rf_res = rf_experiments(X_train, X_test, y_train, y_test)
+    knn_res = knn_experiments(X_train, X_test, y_train, y_test)
+
+    final_table = build_results_table(mlp_res, rf_res, knn_res)
 
 
     # hierarchical_clustering(x_scaled_df)
 
-    k_means(x_scaled_df)
+    # k_means(x_scaled_df)
+
+    # mlp_experiments(x_scaled_df)
+
+    # rf_experiments(x_scaled_df)
+
+    # knn_experiments(x_scaled_df)
+
+
+    # print_split_details(X_train, X_test, y_train, y_test)
+    #
+    #
+    # mlp_res = mlp_experiments(X_train, X_test, y_train, y_test)
+    # rf_res = rf_experiments(X_train, X_test, y_train, y_test)
+    # knn_res = knn_experiments(X_train, X_test, y_train, y_test)
+    #
+    # final_table = build_results_table(mlp_res, rf_res, knn_res)
 
 
     # labels = hierarchical_clustering(x_scaled_df)
